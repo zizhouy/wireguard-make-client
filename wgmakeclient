@@ -1,27 +1,74 @@
 # ----- Modify these -----
-WG_IF = ""
-ENDPOINT = "" # don't forget port
-ALLOWED_IPS = ""
+WG_IF=""
+ENDPOINT="" # don't forget port
+ALLOWED_IPS=""
 
-DNS_INCLUDE = "yes"
-DNS = ""
+DNS_INCLUDE="no"
+DNS=""
 
-MTU_INCLUDE = "yes"
-MTU = ""
+MTU_INCLUDE="no"
+MTU=""
 
 # ----- End Modify -----
 
-CLIENT = "$1"
-CLIENT_IP = "$2"
+# ----- Args -----
+# Allow overwrite
+FORCE_OVERWRITE=0
+
+while getopts ":hf" opt; do
+  case "$opt" in
+    h)
+      echo "Usage: $0 [-f] <client-name> <client-ip>"
+      exit 0
+      ;;
+    f) FORCE_OVERWRITE=1 ;;
+    *)
+      echo "Invalid option"
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND - 1))
+
+CLIENT="${1:-}"
+CLIENT_IP="${2:-}"
+
+# Missing Args?
+if [[ -z "$CLIENT" || -z "$CLIENT_IP" ]]; then
+  echo "Usage: $0 <client-name> <client-ip>"
+  echo "Example: $0 home-laptop 10.10.20.2"
+  exit 1
+fi
+
+# Overwrite
+if [[ -f "${CLIENT}.conf" ]]; then
+  echo "Error: ${CLIENT}.conf already exists"
+  exit 1
+fi
+
+# Looked at script at least
+for v in WG_IF ENDPOINT ALLOWED_IPS; do
+  if [[ -z "${!v}" && $FORCE_OVERWRITE -eq 0 ]]; then
+    echo "Error: $v must be set in the Modify section"
+    exit 1
+  fi
+done
 
 # Keys
-CLIENT_PRIVATE = $(wg genkey)
-CLIENT_PUBLIC = $(wg pubkey <<<"$CLIENT_PRIVATE")
-SERVER_PUBLIC = $(wg show "$WG_IF" public-key)
+CLIENT_PRIVATE=$(wg genkey)
+CLIENT_PUBLIC=$(wg pubkey <<<"$CLIENT_PRIVATE")
+SERVER_PUBLIC=$(wg show "$WG_IF" public-key)
 
 
 # Print details for server
-
+echo "----- Add to "$WG_IF" server -----"
+cat <<EOF
+[Peer]
+PublicKey = $CLIENT_PUBLIC
+AllowedIPs = ${CLIENT_IP}/32
+EOF
+echo "-------------------------"
 
 # Make .conf file
 cat > "${CLIENT}.conf" <<EOF
