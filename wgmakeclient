@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ----- Modify these -----
+WG_IF=""
+ENDPOINT="" # don't forget port
+ALLOWED_IPS=""
+
+DNS_INCLUDE="no" # change to yes if include
+DNS=""
+
+MTU_INCLUDE="no" # change to yes if include
+MTU=""
+
+# ----- End Modify -----
+
+# ----- Args -----
+# Allow overwrite
+FORCE_OVERWRITE=0
+
+while getopts ":hf" opt; do
+  case "$opt" in
+    h)
+      echo "Usage: $0 [-f] <client-name> <client-ip>"
+      exit 0
+      ;;
+    f) FORCE_OVERWRITE=1 ;;
+    *)
+      echo "Invalid option"
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND - 1))
+
+CLIENT="${1:-}"
+CLIENT_IP="${2:-}"
+
+# Missing Args?
+if [[ -z "$CLIENT" || -z "$CLIENT_IP" ]]; then
+  echo "Usage: $0 [-f] <client-name> <client-ip>"
+  echo "Example: $0 home-laptop 10.10.20.2"
+  exit 1
+fi
+
+# Overwrite
+if [[ -f "${CLIENT}.conf" && $FORCE_OVERWRITE -eq 0 ]]; then
+  echo "Error: ${CLIENT}.conf already exists. Use -f to overwrite"
+  exit 1
+fi
+
+# Looked at script at least
+for v in WG_IF ENDPOINT ALLOWED_IPS; do
+  if [[ -z "${!v}" ]]; then
+    echo "Error: $v must be set in the Modify section"
+    exit 1
+  fi
+done
+
+# Keys
+CLIENT_PRIVATE=$(wg genkey)
+CLIENT_PUBLIC=$(wg pubkey <<<"$CLIENT_PRIVATE")
+SERVER_PUBLIC=$(wg show "$WG_IF" public-key)
+
+
+# Print details for server
+echo "----- Add to ${WG_IF} server -----"
+cat <<EOF
+[Peer]
+PublicKey = $CLIENT_PUBLIC
+AllowedIPs = ${CLIENT_IP}/32
+EOF
+echo "-------------------------"
+
+# Make .conf file
+cat > "${CLIENT}.conf" <<EOF
+[Interface]
+PrivateKey = $CLIENT_PRIVATE
+Address = ${CLIENT_IP}/32
+EOF
+
+if [[ "$DNS_INCLUDE" == "yes" ]]; then
+  cat >> "${CLIENT}.conf" <<EOF
+DNS = $DNS
+EOF
+fi
+
+if [[ "$MTU_INCLUDE" == "yes" ]]; then
+  cat >> "${CLIENT}.conf" <<EOF
+MTU = $MTU
+EOF
+fi
+
+cat >> "${CLIENT}.conf" <<EOF
+
+[Peer]
+PublicKey = $SERVER_PUBLIC
+AllowedIPs = $ALLOWED_IPS
+Endpoint = $ENDPOINT
+PersistentKeepalive = 25
+EOF
+
+chmod 600 "${CLIENT}.conf"
+
+echo "Wrote ${CLIENT}.conf"
