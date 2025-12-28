@@ -13,11 +13,11 @@ DNS = <DNS ip>
 MTU = <wireguard default 1420, lower if needed>
 
 [Peer]
-PublicKey = <server public key\>
+PublicKey = <server public key>
 AllowedIPs = <wireguard ip range, or whatever range required>
 Endpoint = <wireguard public ip>:<wireguard port, probably 51820>
 PersistentKeepalive = 25
 ```
 
 ### Note
-\<\> should be replaced in the script with static changes desired
+Script needs to be modified. See script itself
