@@ -1,6 +1,6 @@
 # wireguard-make-client
 ### Create a wireguard .conf file
-wgmakeconf \<client wireguard ip\> \<client name\>
+wgmakeconf \<client name\> \<client wireguard ip\>
 
 ### Looks like
 #### {client name}.conf
