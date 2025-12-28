@@ -8,7 +8,7 @@ wgmakeconf \<client name\> \<client wireguard ip\>
 ```
 [Interface]
 PrivateKey = <client private key>
-Address = {client wireguard ip}/32
+Address = <client wireguard ip>/32
 DNS = <DNS ip>
 MTU = <wireguard default 1420, lower if needed>
 
@@ -19,5 +19,5 @@ Endpoint = <wireguard public ip>:<wireguard port, probably 51820>
 PersistentKeepalive = 25
 ```
 
-### Note
-Script needs to be modified. See script itself
+## Note
+Script needs to be modified. See script itself.
